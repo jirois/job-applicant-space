@@ -1,32 +1,26 @@
 const express = require("express");
-const { pool, initDB } = require("./db");
+const cors = require("cors");
+require("dotenv").config();
+
+const { initDB } = require("./db");
+const authRoutes = require("./routes/auth");
+const jobRoutes = require("./routes/jobs");
 
 const app = express();
 
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
-// initialize DB
-initDB();
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobRoutes);
 
-app.get("/", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
+// Health check -- useful for Railway deployment
+app.get("/health", (_, res) => res.json({ status: "ok" }));
 
-    res.json({
-      success: true,
-      message: "PostgreSQL connected successfully",
-      time: result.rows[0],
-    });
-  } catch (error) {
-    console.error(error);
+const PORT = process.env.PORT || 3001;
 
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-app.listen(3001, () => {
-  console.log("Server running on port 3001");
+// Initialize DB tables then start server
+initDB().then(() => {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 });
